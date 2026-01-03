@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="mc-dev/mc-dev.vcxproj" Id="d1d87abb-5309-4be7-ab66-937a588a0111" />
+</Solution>
