@@ -23,6 +23,9 @@ namespace esp
 	extern bool draw_hud;
 
 	extern bool _3d;
+	extern bool mobs;
+	extern float mobs_range;
+	extern bool mobs_hostile_only;
 
 	extern float color[4];
 	extern float outline_color[4];

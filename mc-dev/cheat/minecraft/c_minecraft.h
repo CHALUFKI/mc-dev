@@ -16,6 +16,7 @@ public:
 	jobject getRenderManager(c_context* ctx);
 	jobject getTimer(c_context* ctx);
 	jobject getGameSettings(c_context* ctx);
+	bool isInstanceOf(jobject obj, const char* className);
 };
 
 extern c_minecraft* mc;

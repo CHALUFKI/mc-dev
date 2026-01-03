@@ -96,7 +96,7 @@ void gui::drawMenu(HDC dc)
 					if (ImGui::BeginTabItem("Aimbot"))
 					{
 						ImGui::Text("Aimbot");
-						
+
 						ImGui::SameLine(); ImGui::Checkbox("##1", &aim::toggle);
 						ImGui::SameLine(); if (ImGui::Button(aim::bind_text, ImVec2(100, 20)))
 						{
@@ -107,11 +107,18 @@ void gui::drawMenu(HDC dc)
 						ImGui::SliderFloat("Speed", &aim::speed, 1, 30);
 						ImGui::SliderFloat("FOV", &aim::fov, 1, 180);
 						ImGui::SliderFloat("Distance", &aim::distance, 1, 100);
-						
+
 						ImGui::Text("\nWhitelist");
 						ImGui::InputTextMultiline("##2", aim::whitelist, IM_ARRAYSIZE(aim::whitelist));
 
 						ImGui::Checkbox("Prioritize Low Health", &aim::low_health);
+						ImGui::Checkbox("Mobs", &aim::mobs);
+						if (aim::mobs)
+						{
+							ImGui::Indent();
+							ImGui::Checkbox("Hostile Only##Aim", &aim::mobs_hostile_only);
+							ImGui::Unindent();
+						}
 
 						ImGui::Text("");
 
@@ -188,10 +195,18 @@ void gui::drawMenu(HDC dc)
 						ImGui::Checkbox("Nametags##1", &esp::draw_nametags);
 						ImGui::Checkbox("HP##1", &esp::draw_hp);
 						ImGui::Checkbox("HUD", &esp::draw_hud);
-						
+
 						ImGui::Text("");
 
 						ImGui::Checkbox("3D", &esp::_3d);
+						ImGui::Checkbox("Mobs", &esp::mobs);
+						if (esp::mobs)
+						{
+							ImGui::Indent();
+							ImGui::SliderFloat("Max Range", &esp::mobs_range, 1, 256);
+							ImGui::Checkbox("Hostile Only##ESP", &esp::mobs_hostile_only);
+							ImGui::Unindent();
+						}
 
 						ImGui::EndTabItem();
 					}
@@ -273,69 +288,69 @@ void gui::drawMenu(HDC dc)
 				if (esp::toggle && !esp::_3d && esp::list_n.size() > 0)
 				{
 					auto rect = [&drawlist](std::vector<double> v, std::vector<std::string> vs)
-					{
-						std::stringstream ss(aim::whitelist);
-						std::string to;
-
-						std::vector<std::string> vvvv;
-						if (aim::whitelist != NULL)
 						{
-							while (std::getline(ss, to, '\n')) {
-								vvvv.push_back(to);
-							}
-						}
+							std::stringstream ss(aim::whitelist);
+							std::string to;
 
-						if (std::find(vvvv.begin(), vvvv.end(), vs[0]) != vvvv.end())
-							drawlist->AddRect(ImVec2(v[0], v[1]), ImVec2(v[2], v[3]), IM_COL32(0, 255, 0, esp::color[3] * 255), 0, 0, 1);
-						else
-							drawlist->AddRect(ImVec2(v[0], v[1]), ImVec2(v[2], v[3]), IM_COL32(esp::color[0] * 255, esp::color[1] * 255, esp::color[2] * 255, esp::color[3] * 255), 0, 0, 1);
-					};
+							std::vector<std::string> vvvv;
+							if (aim::whitelist != NULL)
+							{
+								while (std::getline(ss, to, '\n')) {
+									vvvv.push_back(to);
+								}
+							}
+
+							if (std::find(vvvv.begin(), vvvv.end(), vs[0]) != vvvv.end())
+								drawlist->AddRect(ImVec2(v[0], v[1]), ImVec2(v[2], v[3]), IM_COL32(0, 255, 0, esp::color[3] * 255), 0, 0, 1);
+							else
+								drawlist->AddRect(ImVec2(v[0], v[1]), ImVec2(v[2], v[3]), IM_COL32(esp::color[0] * 255, esp::color[1] * 255, esp::color[2] * 255, esp::color[3] * 255), 0, 0, 1);
+						};
 					auto rectf = [&drawlist](std::vector<double> v, std::vector<std::string> vs)
-					{
-						std::stringstream ss(aim::whitelist);
-						std::string to;
-
-						std::vector<std::string> vvvv;
-						if (aim::whitelist != NULL)
 						{
-							while (std::getline(ss, to, '\n')) {
-								vvvv.push_back(to);
-							}
-						}
+							std::stringstream ss(aim::whitelist);
+							std::string to;
 
-						if (std::find(vvvv.begin(), vvvv.end(), vs[0]) != vvvv.end())
-							drawlist->AddRectFilled(ImVec2(v[0], v[1]), ImVec2(v[0] + abs(v[2] - v[0]), v[1] + abs(v[3] - v[1])), IM_COL32(0, 255, 0, esp::color[3] * 255));
-						else
-							drawlist->AddRectFilled(ImVec2(v[0], v[1]), ImVec2(v[0] + abs(v[2] - v[0]), v[1] + abs(v[3] - v[1])), IM_COL32(esp::color[0] * 255, esp::color[1] * 255, esp::color[2] * 255, esp::color[3] * 255));
-					};
+							std::vector<std::string> vvvv;
+							if (aim::whitelist != NULL)
+							{
+								while (std::getline(ss, to, '\n')) {
+									vvvv.push_back(to);
+								}
+							}
+
+							if (std::find(vvvv.begin(), vvvv.end(), vs[0]) != vvvv.end())
+								drawlist->AddRectFilled(ImVec2(v[0], v[1]), ImVec2(v[0] + abs(v[2] - v[0]), v[1] + abs(v[3] - v[1])), IM_COL32(0, 255, 0, esp::color[3] * 255));
+							else
+								drawlist->AddRectFilled(ImVec2(v[0], v[1]), ImVec2(v[0] + abs(v[2] - v[0]), v[1] + abs(v[3] - v[1])), IM_COL32(esp::color[0] * 255, esp::color[1] * 255, esp::color[2] * 255, esp::color[3] * 255));
+						};
 					auto _rect = [&drawlist](std::vector<double> v, std::vector<std::string> vs)
-					{
-						std::stringstream ss(aim::whitelist);
-						std::string to;
-
-						std::vector<std::string> vvvv;
-						if (aim::whitelist != NULL)
 						{
-							while (std::getline(ss, to, '\n')) {
-								vvvv.push_back(to);
+							std::stringstream ss(aim::whitelist);
+							std::string to;
+
+							std::vector<std::string> vvvv;
+							if (aim::whitelist != NULL)
+							{
+								while (std::getline(ss, to, '\n')) {
+									vvvv.push_back(to);
+								}
 							}
-						}
 
-						if (std::find(vvvv.begin(), vvvv.end(), vs[0]) != vvvv.end())
-						{
-							drawlist->AddRect(ImVec2(v[0], v[1]), ImVec2(v[2], v[3]), IM_COL32(0, 255, 0, 255), 0, 0, 1);
-							drawlist->AddRectFilled(ImVec2(v[0], v[1]), ImVec2(v[0] + abs(v[2] - v[0]), v[1] + abs(v[3] - v[1])), IM_COL32(0, 255, 0, esp::color[3] * 255));
-						}
-						else
-						{
-							drawlist->AddRect(ImVec2(v[0], v[1]), ImVec2(v[2], v[3]), IM_COL32(esp::color[0] * 255, esp::color[1] * 255, esp::color[2] * 255, 255), 0, 0, 1);
-							drawlist->AddRectFilled(ImVec2(v[0], v[1]), ImVec2(v[0] + abs(v[2] - v[0]), v[1] + abs(v[3] - v[1])), IM_COL32(esp::color[0] * 255, esp::color[1] * 255, esp::color[2] * 255, esp::color[3] * 255));
-						}
-					};
+							if (std::find(vvvv.begin(), vvvv.end(), vs[0]) != vvvv.end())
+							{
+								drawlist->AddRect(ImVec2(v[0], v[1]), ImVec2(v[2], v[3]), IM_COL32(0, 255, 0, 255), 0, 0, 1);
+								drawlist->AddRectFilled(ImVec2(v[0], v[1]), ImVec2(v[0] + abs(v[2] - v[0]), v[1] + abs(v[3] - v[1])), IM_COL32(0, 255, 0, esp::color[3] * 255));
+							}
+							else
+							{
+								drawlist->AddRect(ImVec2(v[0], v[1]), ImVec2(v[2], v[3]), IM_COL32(esp::color[0] * 255, esp::color[1] * 255, esp::color[2] * 255, 255), 0, 0, 1);
+								drawlist->AddRectFilled(ImVec2(v[0], v[1]), ImVec2(v[0] + abs(v[2] - v[0]), v[1] + abs(v[3] - v[1])), IM_COL32(esp::color[0] * 255, esp::color[1] * 255, esp::color[2] * 255, esp::color[3] * 255));
+							}
+						};
 					auto recto = [&drawlist](std::vector<double> v, std::vector<std::string> vs)
-					{
-						drawlist->AddRect(ImVec2(v[0], v[1]), ImVec2(v[2], v[3]), IM_COL32(esp::outline_color[0] * 255, esp::outline_color[1] * 255, esp::outline_color[2] * 255, esp::outline_color[3] * 255), 0, 0, 4);
-					};
+						{
+							drawlist->AddRect(ImVec2(v[0], v[1]), ImVec2(v[2], v[3]), IM_COL32(esp::outline_color[0] * 255, esp::outline_color[1] * 255, esp::outline_color[2] * 255, esp::outline_color[3] * 255), 0, 0, 4);
+						};
 					auto name = [&drawlist](std::vector<double> vn, std::vector<std::string> vs)
 						{
 							// Format the distance and health text
@@ -382,17 +397,17 @@ void gui::drawMenu(HDC dc)
 
 
 					auto bar = [&drawlist](std::vector<double> vn, std::vector<std::string> vs)
-					{
-						drawlist->AddLine(ImVec2(vn[0] - 3, vn[1]), ImVec2(vn[0] - 3, vn[3]), IM_COL32(255, 0, 0, 220), 2);
-						drawlist->AddLine(ImVec2(vn[0] - 3, vn[1] + ((abs(vn[3] - vn[1]) / 20) * (20 - std::stoi(vs[1])))), ImVec2(vn[0] - 3, vn[3]), IM_COL32(0, 255, 0, 220), 2);
-					};
+						{
+							drawlist->AddLine(ImVec2(vn[0] - 3, vn[1]), ImVec2(vn[0] - 3, vn[3]), IM_COL32(255, 0, 0, 220), 2);
+							drawlist->AddLine(ImVec2(vn[0] - 3, vn[1] + ((abs(vn[3] - vn[1]) / 20) * (20 - std::stoi(vs[1])))), ImVec2(vn[0] - 3, vn[3]), IM_COL32(0, 255, 0, 220), 2);
+						};
 					auto baro = [&drawlist](std::vector<double> vn, std::vector<std::string> vs)
-					{
-						drawlist->AddLine(ImVec2(vn[0] - 4, vn[1]), ImVec2(vn[0] - 4, vn[3]), IM_COL32(0, 0, 0, 255), 4);
-						drawlist->AddLine(ImVec2(vn[0] - 4, vn[1] + 1), ImVec2(vn[0] - 4, vn[3] - 1), IM_COL32(255, 0, 0, 220), 2);
-						drawlist->AddLine(ImVec2(vn[0] - 4, vn[1] + 1 + ((abs(vn[3] - vn[1]) / 20) * (20 - std::stoi(vs[1])))), ImVec2(vn[0] - 4, vn[3] - 1), IM_COL32(0, 255, 0, 220), 2);
-					};
-				
+						{
+							drawlist->AddLine(ImVec2(vn[0] - 4, vn[1]), ImVec2(vn[0] - 4, vn[3]), IM_COL32(0, 0, 0, 255), 4);
+							drawlist->AddLine(ImVec2(vn[0] - 4, vn[1] + 1), ImVec2(vn[0] - 4, vn[3] - 1), IM_COL32(255, 0, 0, 220), 2);
+							drawlist->AddLine(ImVec2(vn[0] - 4, vn[1] + 1 + ((abs(vn[3] - vn[1]) / 20) * (20 - std::stoi(vs[1])))), ImVec2(vn[0] - 4, vn[3] - 1), IM_COL32(0, 255, 0, 220), 2);
+						};
+
 					int l = esp::list_n.size();
 					for (int i = 0; i < l; i++)
 					{
@@ -418,7 +433,7 @@ void gui::drawMenu(HDC dc)
 							baro(vn, vs);
 					}
 
-					
+
 				}
 				else if (esp::toggle)
 				{
@@ -454,7 +469,7 @@ void gui::drawMenu(HDC dc)
 						}
 					}
 				}
-				
+
 				// hud
 				if (gui::draw_hud)
 				{

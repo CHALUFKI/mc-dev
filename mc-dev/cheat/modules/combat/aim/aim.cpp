@@ -9,6 +9,8 @@ float aim::speed = 0.5f;
 float aim::fov = 60.0f;
 float aim::distance = 5.0f;
 bool aim::low_health = false;
+bool aim::mobs = false;
+bool aim::mobs_hostile_only = false;
 
 char aim::whitelist[256] = "";
 
@@ -49,22 +51,45 @@ void aim::use(c_context* ctx)
 	std::vector<double> local_pos;
 	std::vector<double> player_pos;
 
-	std::vector<jobject> entity_list = ctx->world->getPlayers(ctx);
+	std::vector<jobject> entity_list;
+	if (aim::mobs)
+		entity_list = ctx->world->getEntities(ctx);
+	else
+		entity_list = ctx->world->getPlayers(ctx);
+
 	for (jobject object : entity_list)
 	{
 		if (!object)
 			continue;
 
+		if (!mc->isInstanceOf(object, "net/minecraft/entity/EntityLivingBase"))
+			continue;
+
+		if (aim::mobs && aim::mobs_hostile_only)
+		{
+			if (!mc->isInstanceOf(object, "net/minecraft/entity/monster/EntityMob"))
+				continue;
+		}
+
 		c_player* player = new c_player(object);
 
 		if (player->getEntityId(ctx) == ctx->player->getEntityId(ctx) || !player->getObject())
+		{
+			delete player;
 			continue;
+		}
 
 		if (!player->isEntityAlive(ctx))
+		{
+			delete player;
 			continue;
+		}
 
 		if (player->isInvisible(ctx))
+		{
+			delete player;
 			continue;
+		}
 
 		std::stringstream ss(whitelist);
 		std::string to;
@@ -77,11 +102,17 @@ void aim::use(c_context* ctx)
 			}
 		}
 
-		if (std::find(v.begin(),v.end(), player->getName(ctx)) != v.end())
+		if (std::find(v.begin(), v.end(), player->getName(ctx)) != v.end())
+		{
+			delete player;
 			continue;
+		}
 
 		if (aim::visibility_check && !ctx->player->canEntityBeSeen(ctx, player->getObject()))
+		{
+			delete player;
 			continue;
+		}
 
 		local_yaw = ctx->player->getRotationYaw(ctx);
 		local_pitch = ctx->player->getRotationPitch(ctx);
@@ -92,7 +123,10 @@ void aim::use(c_context* ctx)
 
 		double dist = sqrt(pow(player_pos[0] - local_pos[0], 2) + pow(player_pos[1] - local_pos[1], 2) + pow(player_pos[2] - local_pos[2], 2));
 		if (dist >= aim::distance)
+		{
+			delete player;
 			continue;
+		}
 
 		double dist_x = player_pos[0] - local_pos[0];
 		double dist_z = player_pos[2] - local_pos[2];
@@ -108,9 +142,11 @@ void aim::use(c_context* ctx)
 		{
 			if (abs(diff) <= aim::fov && abs(diff) < abs(closest_yaw))
 			{
+				if (target->getObject()) delete target;
 				target = player;
 				target_pos = player_pos;
 				closest_yaw = diff;
+				continue;
 			}
 		}
 		else
@@ -119,10 +155,13 @@ void aim::use(c_context* ctx)
 			if (abs(diff) <= aim::fov && health < lowest_health)
 			{
 				lowest_health = health;
+				if (target->getObject()) delete target;
 				target = player;
 				target_pos = player_pos;
+				continue;
 			}
 		}
+		delete player;
 	}
 
 	if (((aim::low_health && lowest_health != 500.f) || (!aim::low_health && closest_yaw != 500.0f)) && target->getObject())
@@ -244,7 +283,7 @@ void aim::use(c_context* ctx)
 				z = 0.1;
 			else if (z < 0.0)
 				z = -0.1;
-			
+
 			if (math.wrapTo180(local_yaw) > 0.0)
 				new_yaw += x * aim::predict_strength;
 

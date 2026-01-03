@@ -15,5 +15,6 @@ public:
 	const jobject getObject();
 
 	std::vector<jobject> getPlayers(c_context* ctx);
+	std::vector<jobject> getEntities(c_context* ctx);
 };
 

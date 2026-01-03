@@ -15,6 +15,8 @@ namespace aim
 	extern float fov;
 	extern float distance;
 	extern bool low_health;
+	extern bool mobs;
+	extern bool mobs_hostile_only;
 
 	extern char whitelist[256];
 
@@ -25,6 +27,6 @@ namespace aim
 	extern bool smart;
 	extern bool predict;
 	extern float predict_strength;
-	
+
 	void use(c_context* ctx);
 }

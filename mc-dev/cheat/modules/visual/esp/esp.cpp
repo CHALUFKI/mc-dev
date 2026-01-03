@@ -1,5 +1,6 @@
 #include "esp.h"
 #include "../../../minecraft/render/activerenderinfo.h"
+#include "../../../minecraft/c_minecraft.h"
 
 bool esp::toggle = false;
 bool esp::awaiting_bind = false;
@@ -19,6 +20,9 @@ bool esp::draw_hp = true;
 bool esp::draw_hud = true;
 
 bool esp::_3d = false;
+bool esp::mobs = false;
+float esp::mobs_range = 64.0f;
+bool esp::mobs_hostile_only = false;
 
 float esp::color[4] = { 1, 1, 1, 1 };
 float esp::outline_color[4] = { 0, 0, 0, 1 };
@@ -26,27 +30,27 @@ float esp::outline_color[4] = { 0, 0, 0, 1 };
 
 std::vector<double> multiplication(std::vector<double> vec, GLfloat mat[16])
 {
-	return {
-		vec[0] * mat[0] + vec[1] * mat[4] + vec[2] * mat[8] + vec[3] * mat[12],
-		vec[0] * mat[1] + vec[1] * mat[5] + vec[2] * mat[9] + vec[3] * mat[13],
-		vec[0] * mat[2] + vec[1] * mat[6] + vec[2] * mat[10] + vec[3] * mat[14],
-		vec[0] * mat[3] + vec[1] * mat[7] + vec[2] * mat[11] + vec[3] * mat[15]
-	};
+    return {
+        vec[0] * mat[0] + vec[1] * mat[4] + vec[2] * mat[8] + vec[3] * mat[12],
+        vec[0] * mat[1] + vec[1] * mat[5] + vec[2] * mat[9] + vec[3] * mat[13],
+        vec[0] * mat[2] + vec[1] * mat[6] + vec[2] * mat[10] + vec[3] * mat[14],
+        vec[0] * mat[3] + vec[1] * mat[7] + vec[2] * mat[11] + vec[3] * mat[15]
+    };
 }
 
 bool worldToScreen(std::vector<double> point_in_world, std::vector<float>& screen, GLfloat modelview[16], GLfloat projection[16], GLint viewport[16])
 {
-	std::vector<double> clipSpacePos = multiplication(multiplication({ point_in_world[0], point_in_world[1], point_in_world[2], 1.0f }, modelview), projection);
+    std::vector<double> clipSpacePos = multiplication(multiplication({ point_in_world[0], point_in_world[1], point_in_world[2], 1.0f }, modelview), projection);
 
-	std::vector<double> ndcSpacePos = {clipSpacePos[0] / clipSpacePos[3], clipSpacePos[1] / clipSpacePos[3], clipSpacePos[2] / clipSpacePos[3]};
+    std::vector<double> ndcSpacePos = { clipSpacePos[0] / clipSpacePos[3], clipSpacePos[1] / clipSpacePos[3], clipSpacePos[2] / clipSpacePos[3] };
 
-	if (ndcSpacePos[2] < -1.0 || ndcSpacePos[2] > 1.0)
-		return false;
+    if (ndcSpacePos[2] < -1.0 || ndcSpacePos[2] > 1.0)
+        return false;
 
-	screen[0] = ((ndcSpacePos[0] + 1.0f) / 2.0f) * viewport[2];
-	screen[1] = ((1.0f - ndcSpacePos[1]) / 2.0f) * viewport[3];
+    screen[0] = ((ndcSpacePos[0] + 1.0f) / 2.0f) * viewport[2];
+    screen[1] = ((1.0f - ndcSpacePos[1]) / 2.0f) * viewport[3];
 
-	return true;
+    return true;
 }
 
 void esp::use(c_context* ctx)
@@ -61,8 +65,13 @@ void esp::use(c_context* ctx)
     std::vector<std::vector<std::string>> temp_list_s = {};
     std::vector<std::vector<double>> temp_list_3d = {};
 
-    std::vector<jobject> players = ctx->world->getPlayers(ctx);
-    if (players.size() <= 0)
+    std::vector<jobject> entities;
+    if (esp::mobs)
+        entities = ctx->world->getEntities(ctx);
+    else
+        entities = ctx->world->getPlayers(ctx);
+
+    if (entities.size() <= 0)
     {
         esp::list_n = temp_list_n;
         esp::list_s = temp_list_s;
@@ -70,18 +79,35 @@ void esp::use(c_context* ctx)
         return;
     }
 
-    for (int j = 0; j < players.size(); j++)
+    for (int j = 0; j < entities.size(); j++)
     {
-        jobject obj = players[j];
+        jobject obj = entities[j];
         if (!obj)
             continue;
 
+        if (!mc->isInstanceOf(obj, "net/minecraft/entity/EntityLivingBase"))
+            continue;
+
+        if (esp::mobs && esp::mobs_hostile_only)
+        {
+            if (!mc->isInstanceOf(obj, "net/minecraft/entity/monster/EntityMob"))
+                continue;
+        }
+
         c_player* player = new c_player(obj);
+        if (esp::mobs && player->getDistanceToEntity(ctx, ctx->player) > esp::mobs_range)
+        {
+            delete player;
+            continue;
+        }
         if (!player->getObject())
             continue;
 
         if (!player->isEntityAlive(ctx))
+        {
+            delete player;
             continue;
+        }
 
         if (player->getEntityId(ctx) == ctx->player->getEntityId(ctx))
             continue;
@@ -146,9 +172,6 @@ void esp::use(c_context* ctx)
             if (esp::_3d)
                 temp_list_3d.push_back(bb);
         }
-
-        if (obj)
-            cheat::inst->env->DeleteLocalRef(obj);
 
         delete player;
     }

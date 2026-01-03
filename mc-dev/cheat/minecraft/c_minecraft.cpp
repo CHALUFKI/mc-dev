@@ -83,7 +83,7 @@ jobject c_minecraft::getRenderManager(c_context* ctx)
 	jclass cls = cheat::inst->env->GetObjectClass(ctx->mc);
 	jfieldID fld = cheat::inst->env->GetFieldID(cls, "field_175616_W", "Lnet/minecraft/client/renderer/entity/RenderManager;");
 	jobject res = cheat::inst->env->GetObjectField(ctx->mc, fld);
-	
+
 	if (cls)
 		cheat::inst->env->DeleteLocalRef(cls);
 
@@ -120,3 +120,13 @@ jobject c_minecraft::getGameSettings(c_context* ctx)
 	return ret;
 }
 
+
+bool c_minecraft::isInstanceOf(jobject obj, const char* className)
+{
+	if (!obj) return false;
+	jclass cls = mc->FFindClass(className);
+	if (!cls) return false;
+	bool res = cheat::inst->env->IsInstanceOf(obj, cls);
+	cheat::inst->env->DeleteLocalRef(cls);
+	return res;
+}

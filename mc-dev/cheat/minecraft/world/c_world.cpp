@@ -28,7 +28,7 @@ std::vector<jobject> c_world::getPlayers(c_context* ctx)
 	jobject obj_player_entities = cheat::inst->env->GetObjectField(object, player_entities);
 	jobjectArray array_player_list = reinterpret_cast<jobjectArray>(cheat::inst->env->CallObjectMethod(obj_player_entities, to_array_mtd));
 	size_t len = cheat::inst->env->GetArrayLength(array_player_list);
-	
+
 	std::vector<jobject> res;
 	for (int i = 0; i < len; ++i)
 		res.push_back(cheat::inst->env->GetObjectArrayElement(array_player_list, i));
@@ -41,6 +41,35 @@ std::vector<jobject> c_world::getPlayers(c_context* ctx)
 
 	if (obj_player_entities)
 		cheat::inst->env->DeleteLocalRef(obj_player_entities);
+
+	return res;
+}
+
+std::vector<jobject> c_world::getEntities(c_context* ctx)
+{
+	if (!ctx->mc)
+		return {};
+
+	jclass cls = cheat::inst->env->GetObjectClass(object);
+	jfieldID loaded_entities = cheat::inst->env->GetFieldID(cls, "field_72996_f", "Ljava/util/List;");
+	jclass list_cls = mc->FFindClass("java.util.List");
+	jmethodID to_array_mtd = cheat::inst->env->GetMethodID(list_cls, "toArray", "()[Ljava/lang/Object;");
+	jobject obj_loaded_entities = cheat::inst->env->GetObjectField(object, loaded_entities);
+	jobjectArray array_entity_list = reinterpret_cast<jobjectArray>(cheat::inst->env->CallObjectMethod(obj_loaded_entities, to_array_mtd));
+	size_t len = cheat::inst->env->GetArrayLength(array_entity_list);
+
+	std::vector<jobject> res;
+	for (int i = 0; i < len; ++i)
+		res.push_back(cheat::inst->env->GetObjectArrayElement(array_entity_list, i));
+
+	if (cls)
+		cheat::inst->env->DeleteLocalRef(cls);
+
+	if (list_cls)
+		cheat::inst->env->DeleteLocalRef(list_cls);
+
+	if (obj_loaded_entities)
+		cheat::inst->env->DeleteLocalRef(obj_loaded_entities);
 
 	return res;
 }
