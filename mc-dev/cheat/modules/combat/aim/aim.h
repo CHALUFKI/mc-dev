@@ -15,8 +15,9 @@ namespace aim
 	extern float fov;
 	extern float distance;
 	extern bool low_health;
-	extern bool mobs;
-	extern bool mobs_hostile_only;
+		extern bool players;
+		extern bool mobs;
+		extern bool mobs_hostile_only;
 
 	extern char whitelist[256];
 

@@ -9,6 +9,7 @@ float aim::speed = 0.5f;
 float aim::fov = 60.0f;
 float aim::distance = 5.0f;
 bool aim::low_health = false;
+bool aim::players = true;
 bool aim::mobs = false;
 bool aim::mobs_hostile_only = false;
 
@@ -51,11 +52,7 @@ void aim::use(c_context* ctx)
 	std::vector<double> local_pos;
 	std::vector<double> player_pos;
 
-	std::vector<jobject> entity_list;
-	if (aim::mobs)
-		entity_list = ctx->world->getEntities(ctx);
-	else
-		entity_list = ctx->world->getPlayers(ctx);
+	std::vector<jobject> entity_list = ctx->world->getEntities(ctx);
 
 	for (jobject object : entity_list)
 	{
@@ -65,7 +62,16 @@ void aim::use(c_context* ctx)
 		if (!mc->isInstanceOf(object, "net/minecraft/entity/EntityLivingBase"))
 			continue;
 
-		if (aim::mobs && aim::mobs_hostile_only)
+		bool is_player = mc->isInstanceOf(object, "net/minecraft/entity/player/EntityPlayer");
+		bool is_mob = mc->isInstanceOf(object, "net/minecraft/entity/EntityLiving") && !is_player;
+
+		if (is_player && !aim::players)
+			continue;
+
+		if (is_mob && !aim::mobs)
+			continue;
+
+		if (is_mob && aim::mobs && aim::mobs_hostile_only)
 		{
 			if (!mc->isInstanceOf(object, "net/minecraft/entity/monster/EntityMob"))
 				continue;
@@ -295,6 +301,7 @@ void aim::use(c_context* ctx)
 
 		float pitch_diff = math.wrapTo180(-(ctx->player->getRotationPitch(ctx) - math.getAngles(ctx->player->getPositionVector(ctx), target->getPositionVector(ctx)).second));
 		float new_pitch = local_pitch + (pitch_diff / (40 / aim::speed));
-		ctx->player->setRotationPitch(ctx, new_pitch);
+			ctx->player->setRotationPitch(ctx, new_pitch);
+		}
+		delete target;
 	}
-}

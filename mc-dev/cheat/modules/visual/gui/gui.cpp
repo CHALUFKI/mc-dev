@@ -39,6 +39,9 @@ float gui::item_alpha = 0;
 bool gui::draw_ui = false;
 bool gui::draw_hud = true;
 
+std::vector<gui::EntityDebugData> gui::entity_cache;
+std::mutex gui::entity_cache_mutex;
+
 std::vector<std::string> hud_modules = { "", "", "", "", "" };
 
 
@@ -111,14 +114,15 @@ void gui::drawMenu(HDC dc)
 						ImGui::Text("\nWhitelist");
 						ImGui::InputTextMultiline("##2", aim::whitelist, IM_ARRAYSIZE(aim::whitelist));
 
-						ImGui::Checkbox("Prioritize Low Health", &aim::low_health);
-						ImGui::Checkbox("Mobs", &aim::mobs);
-						if (aim::mobs)
-						{
-							ImGui::Indent();
-							ImGui::Checkbox("Hostile Only##Aim", &aim::mobs_hostile_only);
-							ImGui::Unindent();
-						}
+							ImGui::Checkbox("Prioritize Low Health", &aim::low_health);
+							ImGui::Checkbox("Players##Aim", &aim::players);
+							ImGui::Checkbox("Mobs##Aim", &aim::mobs);
+							if (aim::mobs)
+							{
+								ImGui::Indent();
+								ImGui::Checkbox("Hostile Only##Aim", &aim::mobs_hostile_only);
+								ImGui::Unindent();
+							}
 
 						ImGui::Text("");
 
@@ -266,11 +270,45 @@ void gui::drawMenu(HDC dc)
 							triggerbot::awaiting_bind = true;
 						}
 
-						ImGui::SliderFloat("Threshold", &triggerbot::threshold, 0.1, 2);
-						ImGui::Checkbox("RMB Mode", &triggerbot::rmb);
+							ImGui::SliderFloat("Threshold", &triggerbot::threshold, 0.1, 2);
+							ImGui::Checkbox("RMB Mode", &triggerbot::rmb);
+							ImGui::Checkbox("Players##Trigger", &triggerbot::players);
+							ImGui::Checkbox("Mobs##Trigger", &triggerbot::mobs);
+							if (triggerbot::mobs)
+							{
+								ImGui::Indent();
+								ImGui::Checkbox("Hostile Only##Trigger", &triggerbot::mobs_hostile_only);
+								ImGui::Unindent();
+							}
 
-						ImGui::EndTabItem();
-					}
+							ImGui::EndTabItem();
+						}
+
+						if (ImGui::BeginTabItem("Debug"))
+						{
+							ImGui::Text("Entity List");
+							ImGui::Separator();
+
+							ImGui::BeginChild("EntityListChild", ImVec2(0, 0), true);
+							{
+								std::lock_guard<std::mutex> lock(gui::entity_cache_mutex);
+								if (gui::entity_cache.empty())
+								{
+									ImGui::Text("No entities found or world not loaded.");
+								}
+								else
+								{
+									for (const auto& entity : gui::entity_cache)
+									{
+										ImGui::Text("%s [HP: %.1f] (%.1f, %.1f, %.1f)", 
+											entity.name.c_str(), entity.health, entity.x, entity.y, entity.z);
+									}
+								}
+							}
+							ImGui::EndChild();
+
+							ImGui::EndTabItem();
+						}
 				}
 				ImGui::EndTabBar();
 			}

@@ -11,8 +11,11 @@ namespace triggerbot
 	extern int bind;
 	extern const char* bind_text;
 
-	extern float threshold;
-	extern bool rmb;
+		extern float threshold;
+		extern bool rmb;
+		extern bool players;
+		extern bool mobs;
+		extern bool mobs_hostile_only;
 
 	void use(c_context* ctx);
 }

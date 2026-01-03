@@ -8,6 +8,9 @@ const char* triggerbot::bind_text = "[NONE]##1";
 
 float triggerbot::threshold = 1.5;
 bool triggerbot::rmb = false;
+bool triggerbot::players = true;
+bool triggerbot::mobs = false;
+bool triggerbot::mobs_hostile_only = false;
 
 
 double PI_ = 3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679;
@@ -33,22 +36,49 @@ void triggerbot::use(c_context* ctx)
 	std::vector<double> local_pos;
 	std::vector<double> player_pos;
 
-	std::vector<jobject> entity_list = ctx->world->getPlayers(ctx);
+	std::vector<jobject> entity_list = ctx->world->getEntities(ctx);
 	for (jobject object : entity_list)
 	{
 		if (!object)
 			continue;
 
+		if (!mc->isInstanceOf(object, "net/minecraft/entity/EntityLivingBase"))
+			continue;
+
+		bool is_player = mc->isInstanceOf(object, "net/minecraft/entity/player/EntityPlayer");
+		bool is_mob = mc->isInstanceOf(object, "net/minecraft/entity/EntityLiving") && !is_player;
+
+		if (is_player && !triggerbot::players)
+			continue;
+
+		if (is_mob && !triggerbot::mobs)
+			continue;
+
+		if (is_mob && triggerbot::mobs && triggerbot::mobs_hostile_only)
+		{
+			if (!mc->isInstanceOf(object, "net/minecraft/entity/monster/EntityMob"))
+				continue;
+		}
+
 		c_player* player = new c_player(object);
 
 		if (player->getEntityId(ctx) == ctx->player->getEntityId(ctx) || !player->getObject())
+		{
+			delete player;
 			continue;
+		}
 
 		if (!player->isEntityAlive(ctx))
+		{
+			delete player;
 			continue;
+		}
 
 		if (player->isInvisible(ctx))
+		{
+			delete player;
 			continue;
+		}
 
 		std::stringstream ss(aim::whitelist);
 		std::string to;
@@ -62,10 +92,16 @@ void triggerbot::use(c_context* ctx)
 		}
 
 		if (std::find(v.begin(), v.end(), player->getName(ctx)) != v.end())
+		{
+			delete player;
 			continue;
+		}
 
 		if (!ctx->player->canEntityBeSeen(ctx, player->getObject()))
+		{
+			delete player;
 			continue;
+		}
 
 		local_yaw = ctx->player->getRotationYaw(ctx);
 		local_pitch = ctx->player->getRotationPitch(ctx);
@@ -86,10 +122,13 @@ void triggerbot::use(c_context* ctx)
 
 		if (abs(diff) <= 10 && abs(diff) < abs(closest_yaw))
 		{
+			if (target->getObject()) delete target;
 			target = player;
 			target_pos = player_pos;
 			closest_yaw = diff;
+			continue;
 		}
+		delete player;
 	}
 
 	if (closest_yaw != 500.0f && target->getObject())
@@ -141,4 +180,5 @@ void triggerbot::use(c_context* ctx)
 			}
 		}
 	}
+	delete target;
 }
